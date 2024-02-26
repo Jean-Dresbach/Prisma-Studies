@@ -1,22 +1,18 @@
 import { Request, Response } from "express"
-import { prisma } from "../database/prisma.connections"
+
+import { StudentService } from "../services/student.service"
+import { CreateStudentDTO, UpdateStudentDTO } from "../dtos/student.dto"
+
+const studentService = new StudentService()
 
 export class StudentController {
-  public async index(req: Request, res: Response) {
+  public async index(_: Request, res: Response) {
     try {
-      const students = await prisma.student.findMany()
+      const result = await studentService.findAll()
 
-      return res.status(200).json({
-        sucess: true,
-        code: res.statusCode,
-        message: "Alunos listados com sucesso.",
-        data: {
-          students
-        }
-      })
+      return res.json(result)
     } catch (error) {
       return res.status(500).json({
-        sucess: false,
         code: res.statusCode,
         message: "Erro ao listar alunos."
       })
@@ -29,32 +25,18 @@ export class StudentController {
 
       if (!name || !age || !email || !password) {
         return res.status(400).json({
-          sucess: false,
           code: res.statusCode,
           message: "Preencha todos os campos obrigatórios."
         })
       }
 
-      const newStudent = await prisma.student.create({
-        data: {
-          name,
-          age,
-          email,
-          password
-        }
-      })
+      const student: CreateStudentDTO = { age, email, name, password }
 
-      return res.status(200).json({
-        sucess: true,
-        code: res.statusCode,
-        message: "Aluno criado com sucesso.",
-        data: {
-          newStudent
-        }
-      })
+      const result = await studentService.create(student)
+
+      return res.status(result.code).json(result)
     } catch (error) {
       return res.status(500).json({
-        sucess: false,
         code: res.statusCode,
         message: "Erro ao criar aluno."
       })
@@ -64,33 +46,53 @@ export class StudentController {
   public async show(req: Request, res: Response) {
     try {
       const { studentId } = req.params
-      const student = await prisma.student.findUnique({
-        where: {
-          id: studentId
-        }
-      })
 
-      if (!student) {
-        return res.status(404).json({
-          sucess: false,
-          code: res.statusCode,
-          message: "Aluno não encontrado."
-        })
-      }
+      const result = await studentService.show(studentId)
 
-      return res.status(200).json({
-        sucess: true,
-        code: res.statusCode,
-        message: "Aluno encontrado com sucesso.",
-        data: {
-          student
-        }
-      })
+      return res.status(result.code).json(result)
     } catch (error) {
       return res.status(500).json({
-        sucess: false,
         code: res.statusCode,
         message: "Erro ao buscar aluno."
+      })
+    }
+  }
+
+  public async update(req: Request, res: Response) {
+    try {
+      const { id } = req.params
+      const { name, age, email, password } = req.body
+
+      const updatedStudent = {
+        id,
+        name,
+        age,
+        email,
+        password
+      }
+
+      const result = await studentService.update(updatedStudent)
+
+      return res.status(result.code).json(result)
+    } catch (error) {
+      return res.status(500).json({
+        code: res.statusCode,
+        message: "Erro ao atualizar aluno."
+      })
+    }
+  }
+
+  public async delete(request: Request, response: Response) {
+    try {
+      const { id } = request.params
+
+      const result = await studentService.delete(id)
+
+      response.status(result.code).json(result)
+    } catch (error) {
+      return response.status(500).json({
+        code: response.statusCode,
+        message: "Erro ao exluir aluno."
       })
     }
   }
